@@ -1,0 +1,1 @@
+docker run --rm --name exo1 exo1:1.0
