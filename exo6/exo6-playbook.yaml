@@ -1,0 +1,74 @@
+- 
+  name: exo6
+  hosts: group1
+  become: yes
+  vars:
+    NODEJS_VERSION: "14"
+    ansible_distribution_release: "xenial" # trusty
+    destdir: /apps/Simpleweb
+  tasks:
+
+    - name: Install the gpg key for nodejs LTS
+      apt_key:
+        url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+        state: present
+
+    - name: Install the nodejs LTS repos
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_{{NODEJS_VERSION}}.x {{ansible_distribution_release}} main"
+        state: present
+        update_cache: yes
+
+    - name: Install the nodejs
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Get npm version
+      tags: npm_version
+      command: npm --version
+      register: npm_version
+
+    - name: Debug display npm version
+      tags: npm_version
+      debug: var=npm_version.stdout
+
+    - name: Get node version
+      command: node --version
+      register: node_version
+
+    - name: Debug display node version
+      debug: var=node_version.stdout
+
+    - name: Get simpleweb git repo
+      become: yes
+      git:
+        repo: 'https://github.com/cdufour/simpleweb.git'
+        dest: "{{destdir}}"
+
+    - name: Change the ownership of th directory
+      become: yes
+      file:
+        path: "{{destdir}}"
+        owner: "vagrant"
+
+    - name: Install Dependencies with NPM install command
+      shell:
+        "npm install"
+      args:
+        chdir: "{{destdir}}"
+      register: npminstlout
+
+    - name: Debug npm install command
+      debug: msg='{{npminstlout.stdout_lines}}'
+
+    - name: Start the App
+      async: 10
+      poll: 0
+      shell:
+        "npm start"
+      args:
+        chdir: "{{destdir}}"
+      register: appstart
+
+    
